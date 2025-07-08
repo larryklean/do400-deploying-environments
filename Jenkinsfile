@@ -5,10 +5,10 @@ pipeline {
         }
     }
     environment {
-        QUAY        = credentials('QUAY_USER')
-        RHT_OCP4_DEV_USER    = 'lhnqow'
-        DEPLOYMENT_STAGE     = 'shopping-cart-stage'
-        DEPLOYMENT_PRODUCTION= 'shopping-cart-production'
+        QUAY                = credentials('QUAY_USER')
+        RHT_OCP4_DEV_USER   = 'lhnqow'
+        DEPLOYMENT_STAGE    = 'shopping-cart-stage'
+        DEPLOYMENT_PRODUCTION = 'shopping-cart-production'
     }
     stages {
         stage('Tests') {
@@ -59,6 +59,26 @@ pipeline {
                           -n ${APP_NAMESPACE}
                     """
                     sh "oc rollout status dc/${DEPLOYMENT_STAGE} -n ${APP_NAMESPACE}"
+                }
+            }
+        }
+        stage('Deploy - Production') {
+            environment {
+                APP_NAMESPACE = "${RHT_OCP4_DEV_USER}-shopping-cart-production"
+                QUAY = credentials('QUAY_USER')
+            }
+            input {
+                message 'Deploy to production?'
+            }
+            steps {
+                script {
+                    sh """
+                        oc tag \
+                          quay.io/${QUAY_USR}/do400-deploying-environments:build-${BUILD_NUMBER} \
+                          shopping-cart-image:latest \
+                          -n ${APP_NAMESPACE}
+                    """
+                    sh "oc rollout status dc/${DEPLOYMENT_PRODUCTION} -n ${APP_NAMESPACE}"
                 }
             }
         }
