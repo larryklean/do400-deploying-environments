@@ -6,6 +6,9 @@ pipeline {
     }
     environment {
         QUAY = credentials('QUAY_USER')
+        RHT_OCP4_DEV_USER = 'lhnqow'
+        DEPLOYMENT_STAGE = 'shopping-cart-stage'
+        DEPLOYMENT_PRODUCTION = 'shopping-cart-production'
     }
     stages {
         stage('Tests') {
@@ -37,10 +40,24 @@ pipeline {
                         -Dquarkus.container-image.name=do400-deploying-environments \
                         -Dquarkus.container-image.username=$QUAY_USR \
                         -Dquarkus.container-image.password="$QUAY_PSW" \
+                        -Dquarkus.container-image.tag=build-${BUILD_NUMBER} \
                         -Dquarkus.container-image.push=true
+                """
+            }
+        }
+          stage('Deploy - Stage') {
+            environment {
+                APP_NAMESPACE = "${RHT_OCP4_DEV_USER}-shopping-cart-stage"
+                QUAY = credentials('QUAY_USER')
+            }
+            steps {
+                sh """
+                    oc set image \
+                      deployment ${DEPLOYMENT_STAGE} \
+                      shopping-cart-stage=quay.io/${QUAY_USR}/do400-deploying-environments:build-${BUILD_NUMBER} \
+                      -n ${APP_NAMESPACE} --record
                 """
             }
         }
     }
 }
-
